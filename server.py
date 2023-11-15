@@ -13,7 +13,8 @@ from config import config
 # Flask Init
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
-
+config_path = config.bert_gen_config.config_path
+hps = utils.get_hparams_from_file(config_path)
 
 def replace_punctuation(text, i=2):
     punctuation = "，。？！"
@@ -69,6 +70,7 @@ for model in models:
 
 
 def generate_audio(
+    model,
     slices,
     sdp_ratio,
     noise_scale,
@@ -90,8 +92,8 @@ def generate_audio(
                 sid=speaker,
                 language=language,
                 hps=hps,
-                net_g=net_g,
-                device=device,
+                net_g=net_g_List[model],
+                device=config.webui_config.device,
             )
             audio16bit = gr.processing_utils.convert_to_16_bit_wav(audio)
             audio_list.append(audio16bit)
@@ -142,11 +144,12 @@ def main():
             for lang, content in one:
                 audio_list.extend(
                     generate_audio(
+                        model,
                         content.split("|"),
                         sdp_ratio,
-                        noise_scale,
-                        noise_scale_w,
-                        length_scale,
+                        noise,
+                        noisew,
+                        length,
                         _speaker,
                         lang,
                     )
@@ -154,11 +157,12 @@ def main():
     else:
         audio_list.extend(
             generate_audio(
+                model,
                 text.split("|"),
                 sdp_ratio,
-                noise_scale,
-                noise_scale_w,
-                length_scale,
+                noise,
+                noisew,
+                length,
                 speaker,
                 language,
             )
@@ -179,4 +183,4 @@ def main():
 
 
 if __name__ == "__main__":
-    app.run(port=config.server_config.port, server_name="0.0.0.0")
+    app.run(port=config.server_config.port, host="0.0.0.0")
